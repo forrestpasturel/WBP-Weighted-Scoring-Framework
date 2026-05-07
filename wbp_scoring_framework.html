@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WBP Weighted Scoring Framework</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: #f5f4f0;
+    color: #1a1a18;
+    padding: 2rem;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  h1 {
+    font-size: 18px;
+    font-weight: 500;
+    margin-bottom: 4px;
+    color: #1a1a18;
+  }
+  .subtitle {
+    font-size: 13px;
+    color: #6b6a63;
+    margin-bottom: 1.5rem;
+  }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .pillar {
+    background: #ffffff;
+    border: 0.5px solid rgba(0,0,0,0.12);
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1rem;
+  }
+  .pillar-title { font-size: 14px; font-weight: 500; color: #1a1a18; margin: 0 0 3px; }
+  .pillar-sub { font-size: 12px; color: #6b6a63; margin: 0 0 12px; }
+  .amenity-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 13px; }
+  .amenity-label { flex: 1; color: #1a1a18; }
+  .amenity-tag {
+    font-size: 11px; padding: 2px 7px; border-radius: 4px;
+    font-weight: 500; white-space: nowrap;
+  }
+  .tag-equity { background: #e1f5ee; color: #0f6e56; }
+  .tag-basic { background: #f1efe8; color: #5f5e5a; border: 0.5px solid rgba(0,0,0,0.12); }
+  .tag-luxury { background: #faeeda; color: #854f0b; }
+  .tag-tbd { background: #e6f1fb; color: #185fa5; }
+  .weight-val { font-size: 13px; font-weight: 500; min-width: 28px; text-align: right; color: #1a1a18; }
+  input[type=range] {
+    width: 80px; height: 4px; cursor: pointer;
+    accent-color: #1D9E75;
+  }
+  .score-bar-bg {
+    flex: 1; height: 6px;
+    background: rgba(0,0,0,0.08);
+    border-radius: 3px; overflow: hidden;
+  }
+  .score-bar-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
+  .section-label {
+    font-size: 11px; font-weight: 500; color: #6b6a63;
+    text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 8px;
+  }
+  .result-card {
+    background: #ffffff;
+    border-radius: 8px; padding: 12px 16px;
+    border: 0.5px solid rgba(0,0,0,0.12); margin-bottom: 8px;
+  }
+  .slider-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .slider-row label { font-size: 13px; color: #6b6a63; flex: 1; }
+  .pct { font-size: 12px; color: #6b6a63; min-width: 32px; text-align: right; }
+  hr.divider { border: none; border-top: 0.5px solid rgba(0,0,0,0.1); margin: 12px 0; }
+  .note { font-size: 11px; color: #9b9a93; font-style: italic; margin-top: 6px; }
+  .flags-box {
+    margin-top: 16px; background: #f5f4f0;
+    border-radius: 8px; padding: 12px 14px;
+    border: 0.5px solid rgba(0,0,0,0.10);
+  }
+  .epc-badge {
+    font-size: 11px; padding: 2px 7px; border-radius: 4px;
+    font-weight: 500; background: #e1f5ee; color: #0f6e56;
+  }
+  @media (max-width: 700px) {
+    .grid { grid-template-columns: 1fr; }
+    body { padding: 1rem; }
+  }
+</style>
+</head>
+<body>
+
+<h1>WBP Weighted Scoring Framework</h1>
+<p class="subtitle">Walkability Bonus Program — Interactive amenity weight and equity multiplier simulator. Adjust sliders to explore how scoring priorities affect community rankings.</p>
+
+<div class="grid">
+
+<div>
+  <p class="section-label">Pillar weights</p>
+
+  <div class="pillar">
+    <p class="pillar-title">Pillar 1 — Amenities &amp; third places</p>
+    <p class="pillar-sub">Research question: how should amenity type affect score?</p>
+
+    <div class="amenity-row">
+      <span class="amenity-label">Public library</span>
+      <span class="amenity-tag tag-equity">Equity anchor</span>
+      <input type="range" min="0" max="20" value="15" step="1" id="w-library" oninput="recalc()">
+      <span class="weight-val" id="v-library">15</span>
+    </div>
+    <div class="amenity-row">
+      <span class="amenity-label">Community center</span>
+      <span class="amenity-tag tag-equity">Equity anchor</span>
+      <input type="range" min="0" max="20" value="14" step="1" id="w-community" oninput="recalc()">
+      <span class="weight-val" id="v-community">14</span>
+    </div>
+    <div class="amenity-row">
+      <span class="amenity-label">Corner / neighborhood grocery</span>
+      <span class="amenity-tag tag-basic">Basic access</span>
+      <input type="range" min="0" max="20" value="12" step="1" id="w-corner" oninput="recalc()">
+      <span class="weight-val" id="v-corner">12</span>
+    </div>
+    <div class="amenity-row">
+      <span class="amenity-label">Pharmacy / urgent care</span>
+      <span class="amenity-tag tag-basic">Basic access</span>
+      <input type="range" min="0" max="20" value="11" step="1" id="w-pharmacy" oninput="recalc()">
+      <span class="weight-val" id="v-pharmacy">11</span>
+    </div>
+    <div class="amenity-row">
+      <span class="amenity-label">Coworking / third-place café</span>
+      <span class="amenity-tag tag-tbd">Needs research</span>
+      <input type="range" min="0" max="20" value="8" step="1" id="w-cowork" oninput="recalc()">
+      <span class="weight-val" id="v-cowork">8</span>
+    </div>
+    <div class="amenity-row">
+      <span class="amenity-label">Luxury grocery (Whole Foods etc.)</span>
+      <span class="amenity-tag tag-luxury">Caution</span>
+      <input type="range" min="0" max="20" value="3" step="1" id="w-luxury" oninput="recalc()">
+      <span class="weight-val" id="v-luxury">3</span>
+    </div>
+    <div class="amenity-row">
+      <span class="amenity-label">Restaurant / dining</span>
+      <span class="amenity-tag tag-tbd">Needs research</span>
+      <input type="range" min="0" max="20" value="6" step="1" id="w-restaurant" oninput="recalc()">
+      <span class="weight-val" id="v-restaurant">6</span>
+    </div>
+
+    <hr class="divider">
+
+    <div class="slider-row">
+      <label>Pillar 1 weight (of total score)</label>
+      <input type="range" min="10" max="60" value="35" step="5" id="p1-weight" oninput="recalc()">
+      <span class="weight-val pct" id="p1-pct">35%</span>
+    </div>
+  </div>
+
+  <div class="pillar">
+    <p class="pillar-title">Pillar 2 — Density &amp; parking</p>
+    <p class="pillar-sub">Housing units/acre + surface parking removal</p>
+    <div class="slider-row">
+      <label>Pillar 2 weight</label>
+      <input type="range" min="10" max="60" value="35" step="5" id="p2-weight" oninput="recalc()">
+      <span class="weight-val pct" id="p2-pct">35%</span>
+    </div>
+  </div>
+
+  <div class="pillar">
+    <p class="pillar-title">Pillar 3 — Pedestrianization</p>
+    <p class="pillar-sub">Complete Streets plan, road dieting, ATP adoption</p>
+    <div class="slider-row">
+      <label>Pillar 3 weight</label>
+      <input type="range" min="10" max="60" value="30" step="5" id="p3-weight" oninput="recalc()">
+      <span class="weight-val pct" id="p3-pct">30%</span>
+    </div>
+  </div>
+
+  <div class="pillar">
+    <p class="pillar-title">Equity multiplier (EPC bonus)</p>
+    <p class="pillar-sub">Score boost for EPC-designated project areas</p>
+    <div class="slider-row">
+      <label>Multiplier applied to total score</label>
+      <input type="range" min="100" max="175" value="130" step="5" id="epc-mult" oninput="recalc()">
+      <span class="weight-val pct" id="epc-pct">1.30×</span>
+    </div>
+    <p class="note">Needs calibration via feasibility study. 1.0× = no bonus. Literature suggests 1.2–1.5× is typical in comparable programs (e.g. AHSC, ATP scoring).</p>
+  </div>
+</div>
+
+<div>
+  <p class="section-label">Simulated community scores</p>
+  <p style="font-size:12px;color:#6b6a63;margin:0 0 12px;">Adjust amenity weights to see how scores shift across community types. These are illustrative — thresholds require feasibility study.</p>
+
+  <div id="results"></div>
+
+  <div class="flags-box">
+    <p class="section-label" style="margin-bottom:6px">Research priorities flagged</p>
+    <div id="research-flags" style="font-size:12px;color:#6b6a63;line-height:1.7;"></div>
+  </div>
+</div>
+</div>
+
+<script>
+const communities = [
+  {
+    name: "Downtown Healdsburg, CA",
+    epc: false,
+    desc: "Prosperous wine-country, walkable core, few equity anchors",
+    p1_amenities: { library:1, community:0, corner:0, pharmacy:0, cowork:1, luxury:1, restaurant:1 },
+    p2: 72, p3: 68,
+  },
+  {
+    name: "Napa Oxbow District, CA",
+    epc: true,
+    desc: "Lower-income, Latinx neighborhood, food access gaps",
+    p1_amenities: { library:1, community:1, corner:1, pharmacy:1, cowork:0, luxury:0, restaurant:0 },
+    p2: 55, p3: 52,
+  },
+  {
+    name: "Downtown Petaluma, CA",
+    epc: false,
+    desc: "Mixed-income, SMART rail adjacent, growing ATP",
+    p1_amenities: { library:1, community:1, corner:1, pharmacy:1, cowork:1, luxury:0, restaurant:1 },
+    p2: 65, p3: 70,
+  },
+  {
+    name: "Suisun City Waterfront, CA",
+    epc: true,
+    desc: "EPC-designated, underinvested, historic downtown potential",
+    p1_amenities: { library:1, community:1, corner:1, pharmacy:0, cowork:0, luxury:0, restaurant:1 },
+    p2: 48, p3: 55,
+  },
+  {
+    name: "Downtown Napa, CA",
+    epc: false,
+    desc: "Tourism-oriented, luxury amenity-rich, lower equity anchor density",
+    p1_amenities: { library:1, community:0, corner:0, pharmacy:1, cowork:1, luxury:1, restaurant:1 },
+    p2: 60, p3: 63,
+  },
+];
+
+const barColors = ["#1D9E75","#378ADD","#BA7517","#D85A30","#7F77DD"];
+
+function recalc() {
+  const wLib = +document.getElementById('w-library').value;
+  const wCom = +document.getElementById('w-community').value;
+  const wCor = +document.getElementById('w-corner').value;
+  const wPha = +document.getElementById('w-pharmacy').value;
+  const wCow = +document.getElementById('w-cowork').value;
+  const wLux = +document.getElementById('w-luxury').value;
+  const wRes = +document.getElementById('w-restaurant').value;
+
+  document.getElementById('v-library').textContent = wLib;
+  document.getElementById('v-community').textContent = wCom;
+  document.getElementById('v-corner').textContent = wCor;
+  document.getElementById('v-pharmacy').textContent = wPha;
+  document.getElementById('v-cowork').textContent = wCow;
+  document.getElementById('v-luxury').textContent = wLux;
+  document.getElementById('v-restaurant').textContent = wRes;
+
+  let p1w = +document.getElementById('p1-weight').value;
+  let p2w = +document.getElementById('p2-weight').value;
+  let p3w = +document.getElementById('p3-weight').value;
+  const total = p1w + p2w + p3w;
+  p1w = Math.round(p1w / total * 100);
+  p2w = Math.round(p2w / total * 100);
+  p3w = 100 - p1w - p2w;
+  document.getElementById('p1-pct').textContent = p1w + '%';
+  document.getElementById('p2-pct').textContent = p2w + '%';
+  document.getElementById('p3-pct').textContent = p3w + '%';
+
+  const epcMult = +document.getElementById('epc-mult').value / 100;
+  document.getElementById('epc-pct').textContent = epcMult.toFixed(2) + '×';
+
+  const maxAmenityRaw = wLib + wCom + wCor + wPha + wCow + wLux + wRes;
+
+  const scored = communities.map((c, i) => {
+    const a = c.p1_amenities;
+    const amenityRaw = a.library*wLib + a.community*wCom + a.corner*wCor +
+                       a.pharmacy*wPha + a.cowork*wCow + a.luxury*wLux + a.restaurant*wRes;
+    const p1Score = maxAmenityRaw > 0 ? (amenityRaw / maxAmenityRaw) * 100 : 0;
+    const raw = (p1Score * p1w + c.p2 * p2w + c.p3 * p3w) / 100;
+    const final = c.epc ? Math.min(raw * epcMult, 100) : raw;
+    return { ...c, score: Math.round(final), raw: Math.round(raw), color: barColors[i] };
+  });
+
+  scored.sort((a, b) => b.score - a.score);
+
+  const resultsDiv = document.getElementById('results');
+  resultsDiv.innerHTML = scored.map(c => `
+    <div class="result-card">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+        <span style="font-size:13px;font-weight:500;flex:1;color:#1a1a18">${c.name}</span>
+        ${c.epc ? '<span class="epc-badge">EPC</span>' : ''}
+        <span style="font-size:15px;font-weight:500;color:#1a1a18">${c.score}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <div class="score-bar-bg">
+          <div class="score-bar-fill" style="width:${c.score}%;background:${c.color}"></div>
+        </div>
+      </div>
+      <p style="font-size:11px;color:#6b6a63;margin:0">${c.desc}${c.epc ? ` · Raw: ${c.raw} → EPC-boosted: ${c.score}` : ''}</p>
+    </div>
+  `).join('');
+
+  const luxHigh = wLux > 10;
+  const cowHigh = wCow > 12;
+  const equityLow = epcMult < 1.15;
+  const p1Dominant = p1w > 50;
+  const flags = [];
+  if (luxHigh) flags.push("⚠ Luxury grocery weight is high — research needed on whether premium retail serves existing residents or accelerates gentrification.");
+  if (cowHigh) flags.push("⚠ Coworking weighted heavily — limited evidence base for VMT reduction impact in suburban contexts; needs post-pandemic commute research.");
+  if (equityLow) flags.push("⚠ EPC multiplier below 1.15× — may be insufficient to overcome planning capacity advantages of wealthier jurisdictions.");
+  if (p1Dominant) flags.push("⚠ Amenity pillar dominates total score — density and pedestrianization are the strongest VMT predictors per Ewing & Cervero (2010); consider rebalancing.");
+  if (!luxHigh && !cowHigh && !equityLow && !p1Dominant) flags.push("✓ Current weights appear balanced — amenity diversity rewarded without over-indexing on luxury or unproven categories.");
+  flags.push("→ Thresholds for all weights require calibration via feasibility study drawing on EPA Smart Location Database and MTC 2023 Travel Survey data.");
+
+  document.getElementById('research-flags').innerHTML = flags.map(f =>
+    `<p style="margin:0 0 4px">${f}</p>`
+  ).join('');
+}
+
+recalc();
+</script>
+</body>
+</html>
